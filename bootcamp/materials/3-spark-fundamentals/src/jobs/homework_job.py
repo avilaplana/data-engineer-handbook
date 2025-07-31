@@ -15,6 +15,7 @@ from pyspark.sql.functions import col, broadcast
 #
 # Your goal is to make the following things happen:
 
+prefix_folder="../../data/"
 spark = SparkSession.builder \
             .master("local") \
             .appName("homework") \
@@ -27,14 +28,14 @@ spark.conf.set("spark.sql.autoBroadcastJoinThreshold", "-1")
 medals_df = spark \
                 .read \
                 .option("header", "true") \
-                .csv("../../data/medals.csv") \
+                .csv(prefix_folder + "medals.csv") \
                 .where(col('name').isNotNull())
 
 # Extract maps data set
 maps_df = spark \
             .read \
             .option("header", "true") \
-            .csv("../../data/maps.csv") \
+            .csv(prefix_folder + "maps.csv") \
             .where(col('name').isNotNull())
 
 # - Explicitly broadcast JOINs `medals` and `maps`
@@ -47,19 +48,19 @@ broadcast(medals_and_maps_df)
 match_details_df = spark \
                     .read \
                     .option("header", "true") \
-                    .csv("../../data/match_details.csv")
+                    .csv(prefix_folder + "match_details.csv")
 
 # Extract matches data set
 matches_df = spark \
                 .read \
                 .option("header","true") \
-                .csv("../../data/matches.csv")
+                .csv(prefix_folder + "matches.csv")
 
 # Extract medal_matches_players data set
 medal_matches_players_df = spark \
                             .read \
                             .option("header","true") \
-                            .csv("../../data/medals_matches_players.csv") \
+                            .csv(prefix_folder + "medals_matches_players.csv") \
                             .withColumnRenamed("player_gamertag","player_gamertag_medal")
 
 # Alias your DataFrames
@@ -74,6 +75,30 @@ matches_join_df = matches_alias_df \
 
 repartition_matches_join_df = matches_join_df \
                             .repartition(16, col("m.match_id"))
+
+matches_concise_df = repartition_matches_join_df.select("match_id", "mapid", "playlist_id", "player_gamertag", "player_total_kills", "player_gamertag_medal", "medal_id", "count")
+matches_concise_df.printSchema()
+
+spark.sql("DROP TABLE IF EXISTS bootcamp.matches")
+
+matches_query = """
+CREATE TABLE IF NOT EXISTS bootcamp.matches (
+    match_id STRING,
+    mapid STRING,
+    playlist_id STRING,
+    player_gamertag STRING,
+    player_total_kills STRING,
+    player_gamertag_medal STRING,
+    medal_id STRING,
+    count STRING
+)
+USING iceberg
+PARTITIONED BY (bucket(16, match_id))
+"""
+
+spark.sql(matches_query)
+matches_concise_df.write.mode("overwrite").saveAsTable("bootcamp.matches")
+
 
 # - Aggregate the joined data frame to figure out questions like:
 #     - Which player averages the most kills per game?
@@ -197,3 +222,37 @@ map_do_players_get_the_most_killing_spree_medals_question_df.show(15, truncate=F
 
 #   - With the aggregated data set
 #     - Try different `.sortWithinPartitions` to see which has the smallest data size (hint: playlists and maps are both very low cardinality)
+
+
+spark.sql("DROP TABLE IF EXISTS bootcamp.matches_sorted")
+
+matches_query = """
+CREATE TABLE IF NOT EXISTS bootcamp.matches_sorted (
+    match_id STRING,
+    mapid STRING,
+    playlist_id STRING,
+    player_gamertag STRING,
+    player_total_kills STRING,
+    player_gamertag_medal STRING,
+    medal_id STRING,
+    count STRING
+)
+USING iceberg
+PARTITIONED BY (bucket(16, match_id))
+"""
+
+matches_concise_df \
+    .sortWithinPartitions("playlist_id", "mapid") \
+    .write.mode("overwrite") \
+    .saveAsTable("bootcamp.matches_sorted")
+
+sql_query_to_check_files_size = """
+SELECT SUM(file_size_in_bytes) as size, COUNT(1) as num_files, 'unsorted' 
+FROM demo.bootcamp.matches.files
+
+UNION ALL
+SELECT SUM(file_size_in_bytes) as size, COUNT(1) as num_files, 'sorted' 
+FROM demo.bootcamp.matches_sorted.files
+"""
+
+spark.sql(sql_query_to_check_files_size).show()
