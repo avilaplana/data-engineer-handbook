@@ -92,7 +92,7 @@ repartition_matches_join_df = matches_join_df \
 
 repartition_matches_join_df.createOrReplaceTempView("repartition_matches_join_df")
 
-first_question_query = """
+player_averages_the_most_kills_per_game_query = """
 WITH players_match_with_row_number (
     SELECT 
         *,
@@ -103,15 +103,47 @@ WITH players_match_with_row_number (
     FROM players_match_with_row_number
     WHERE row_num = 1                
     )
-    
-    SELECT * FROM players_match_deduped
+     SELECT 
+        player_gamertag AS player_name,
+        COUNT(1) AS count,
+        AVG(player_total_kills) AS average_kills,
+        SUM(player_total_kills) AS total_kills
+    FROM players_match_deduped 
+    GROUP BY player_gamertag      
+    ORDER BY count DESC
+    LIMIT 1 
 """
 
-q_df = spark.sql(first_question_query)
-
-q_df.show(15)
+player_averages_the_most_kills_per_game_df = spark.sql(player_averages_the_most_kills_per_game_query)
+player_averages_the_most_kills_per_game_df.show(15)
 
 #     - Which playlist gets played the most?
+playlist_gets_played_the_most_question = """
+    WITH playlist_match_with_row_number (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY match_id, playlist_id ORDER BY match_id) AS row_num    
+    FROM repartition_matches_join_df        
+), playlist_match_deduped AS (
+    SELECT 
+        match_id, 
+        playlist_id
+    FROM playlist_match_with_row_number
+    WHERE row_num = 1                
+    )        
+
+    SELECT 
+        playlist_id, 
+        COUNT(1) AS count
+    FROM playlist_match_deduped
+    GROUP BY playlist_id
+    ORDER BY count DESC
+    LIMIT 1    
+"""
+
+playlist_gets_played_the_most_question_df = spark.sql(playlist_gets_played_the_most_question)
+playlist_gets_played_the_most_question_df.show(15)
+
 #     - Which map gets played the most?
 #     - Which map do players get the most Killing Spree medals on?
 #   - With the aggregated data set
