@@ -146,7 +146,7 @@ playlist_gets_played_the_most_question_df.show(15)
 
 #     - Which map gets played the most?
 map_gets_played_the_most_question = """
-    WITH map_mach_with_row_number (
+    WITH map_match_with_row_number (
     SELECT 
         *,
         ROW_NUMBER() OVER (PARTITION BY match_id, mapid ORDER BY match_id) AS row_num    
@@ -155,7 +155,7 @@ map_gets_played_the_most_question = """
     SELECT 
         match_id, 
         mapid
-    FROM map_mach_with_row_number
+    FROM map_match_with_row_number
     WHERE row_num = 1                
     )        
 
@@ -172,5 +172,40 @@ map_gets_played_the_most_question_df = spark.sql(map_gets_played_the_most_questi
 map_gets_played_the_most_question_df.show(15)
 
 #     - Which map do players get the most Killing Spree medals on?
+medals_df.createOrReplaceTempView("medals_df")
+
+map_do_players_get_the_most_killing_spree_medals_question = """
+WITH match_with_players_filtered (
+    SELECT  
+        match_id,
+        mapid, 
+        player_gamertag, 
+        player_total_kills,
+        medal_id,
+        count 
+    FROM repartition_matches_join_df
+    WHERE player_gamertag = player_gamertag_medal    
+), match_killing_spreee_medals AS (
+    SELECT m.*, med.name
+    FROM match_with_players_filtered AS m 
+    JOIN medals_df AS med ON m.medal_id = med.medal_id
+    WHERE med.name = 'Killing Spree'
+    ORDER BY m.match_id
+), map_aggregates AS (
+    SELECT 
+        mapid,
+        SUM(player_total_kills) AS total_kills
+    FROM match_killing_spreee_medals
+    GROUP BY mapid
+    ORDER BY total_kills DESC
+    LIMIT 1
+)
+    
+SELECT * FROM map_aggregates
+"""
+
+map_do_players_get_the_most_killing_spree_medals_question_df = spark.sql(map_do_players_get_the_most_killing_spree_medals_question)
+map_do_players_get_the_most_killing_spree_medals_question_df.show(15, truncate=False)
+
 #   - With the aggregated data set
 #     - Try different `.sortWithinPartitions` to see which has the smallest data size (hint: playlists and maps are both very low cardinality)
