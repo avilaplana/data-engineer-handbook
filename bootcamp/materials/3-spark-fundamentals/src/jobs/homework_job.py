@@ -49,17 +49,11 @@ match_details_df = spark \
                     .option("header", "true") \
                     .csv("../../data/match_details.csv")
 
-# print("match_details_df")
-# match_details_df.orderBy(col("match_id")).show(20)
-
 # Extract matches data set
 matches_df = spark \
                 .read \
                 .option("header","true") \
                 .csv("../../data/matches.csv")
-
-# print("matches_df")
-# matches_df.orderBy(col("match_id")).show(20)
 
 # Extract medal_matches_players data set
 medal_matches_players_df = spark \
@@ -67,9 +61,6 @@ medal_matches_players_df = spark \
                             .option("header","true") \
                             .csv("../../data/medals_matches_players.csv") \
                             .withColumnRenamed("player_gamertag","player_gamertag_medal")
-
-# print("medal_matches_players_df")
-# medal_matches_players_df.orderBy(col("match_id")).show(20)
 
 # Alias your DataFrames
 matches_alias_df = matches_df.alias("m")
@@ -84,11 +75,8 @@ matches_join_df = matches_alias_df \
 repartition_matches_join_df = matches_join_df \
                             .repartition(16, col("m.match_id"))
 
-# repartition_matches_join_df.printSchema()
-
 # - Aggregate the joined data frame to figure out questions like:
 #     - Which player averages the most kills per game?
-            # note: interesting fields: player_gamertag, player_total_kills
 
 repartition_matches_join_df.createOrReplaceTempView("repartition_matches_join_df")
 
