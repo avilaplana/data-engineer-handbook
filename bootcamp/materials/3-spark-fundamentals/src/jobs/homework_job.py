@@ -145,6 +145,32 @@ playlist_gets_played_the_most_question_df = spark.sql(playlist_gets_played_the_m
 playlist_gets_played_the_most_question_df.show(15)
 
 #     - Which map gets played the most?
+map_gets_played_the_most_question = """
+    WITH map_mach_with_row_number (
+    SELECT 
+        *,
+        ROW_NUMBER() OVER (PARTITION BY match_id, mapid ORDER BY match_id) AS row_num    
+    FROM repartition_matches_join_df        
+), map_match_deduped AS (
+    SELECT 
+        match_id, 
+        mapid
+    FROM map_mach_with_row_number
+    WHERE row_num = 1                
+    )        
+
+    SELECT 
+        mapid, 
+        COUNT(1) AS count
+    FROM map_match_deduped
+    GROUP BY mapid
+    ORDER BY count DESC
+    LIMIT 1    
+"""
+
+map_gets_played_the_most_question_df = spark.sql(map_gets_played_the_most_question)
+map_gets_played_the_most_question_df.show(15)
+
 #     - Which map do players get the most Killing Spree medals on?
 #   - With the aggregated data set
 #     - Try different `.sortWithinPartitions` to see which has the smallest data size (hint: playlists and maps are both very low cardinality)
