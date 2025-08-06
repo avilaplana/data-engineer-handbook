@@ -59,6 +59,9 @@ Top must-join communities for ML:
   - [Delta Lake](https://delta.io/)
   - [Ilum](https://ilum.cloud/)
   - [DuckLake](https://ducklake.select/)
+  - [Apache Iceberg](https://iceberg.apache.org/)
+  - [Apache Polaris](https://polaris.apache.org/)
+  - [Lakekeeper](https://lakekeeper.io/)
 - Data Warehouse
   - [Snowflake](https://www.snowflake.com/en/)
   - [Firebolt](https://www.firebolt.io/)
@@ -147,6 +150,7 @@ Top must-join communities for ML:
 - [XTable in Action: Seamless Interoperability in Data Lakes](https://arxiv.org/abs/2401.09621)
 - [MapReduce: Simplified Data Processing on Large Clusters](https://research.google/pubs/mapreduce-simplified-data-processing-on-large-clusters/)
 - [Tidy Data](https://vita.had.co.nz/papers/tidy-data.pdf)
+- [Data Engineering Whitepapers](https://www.ssp.sh/brain/data-engineering-whitepapers/)
 
 ### Social Media Accounts
 
