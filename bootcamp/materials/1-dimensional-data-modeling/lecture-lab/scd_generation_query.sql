@@ -8,6 +8,7 @@ WITH streak_started AS (
                (PARTITION BY player_name ORDER BY current_season) IS NULL
                AS did_change
     FROM players
+    WHERE current_season <= 2021
 ),
      streak_identified AS (
          SELECT
@@ -24,10 +25,11 @@ WITH streak_started AS (
             scoring_class,
             streak_identifier,
             MIN(current_season) AS start_date,
-            MAX(current_season) AS end_date
+            MAX(current_season) AS end_date,
+            2021 AS current_season
          FROM streak_identified
          GROUP BY 1,2,3
      )
 
-     SELECT player_name, scoring_class, start_date, end_date
+     SELECT player_name, scoring_class, start_date, end_date,current_season
      FROM aggregated
